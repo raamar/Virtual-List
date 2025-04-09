@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import VirtualList from './VirtualList.svelte';
 
+	export let data;
 	// Пусть у нас 1000 элементов (квадратов)
-	let items = Array.from({ length: 1000 }, (_, i) => i);
+	let items = Array.from({ length: 63 }, (_, i) => i);
 
-	// Начнём сразу с 10-го элемента
-	let currentIndex = 10;
+	const initialIndex = data.index - 1;
+	let currentIndex = 0;
 
 	// При каждом скролле VirtualList даёт нам событие "viewChange"
 	function handleViewChange(event: CustomEvent<{ currentIndex: number }>) {
@@ -13,19 +15,18 @@
 		if (newIndex !== currentIndex) {
 			currentIndex = newIndex;
 			// Если нужно, здесь можно сохранить index в store или обновить query-параметры
+			goto(`?page=${currentIndex + 1}`, {
+				replaceState: true,
+				noScroll: true
+			});
 		}
 	}
 </script>
 
-<!-- 
-  - Передаём initialIndex={currentIndex}, чтобы VirtualList знал,
-    что надо автоскроллить на 10-й элемент
-  - Снаружи рендерим только [currentIndex..currentIndex+1] (2 штуки)
--->
-<VirtualList totalCount={items.length} initialIndex={currentIndex} on:viewChange={handleViewChange}>
+<VirtualList totalCount={items.length} on:viewChange={handleViewChange} {initialIndex}>
 	{#each items as item, index}
 		{#if index >= currentIndex && index <= currentIndex + 1}
-			<div class="chunk" data-index={index}>
+			<div class="chunk" data-index={index + 1} class:reverse={index % 2}>
 				<div class="item">{item * 4 + 1}</div>
 				<div class="item">{item * 4 + 2}</div>
 				<div class="item">{item * 4 + 3}</div>
@@ -46,7 +47,13 @@
 		grid-template-columns: repeat(2, 1fr);
 		gap: 20px;
 		position: relative;
-		margin-bottom: 20px;
+		padding-bottom: 20px;
+	}
+
+	@media (max-width: 768px) {
+		.chunk {
+			grid-template-columns: repeat(1, 1fr);
+		}
 	}
 
 	.reverse {
@@ -64,6 +71,7 @@
 		justify-content: center;
 		align-items: center;
 		z-index: 10;
+		margin-top: -10px;
 	}
 
 	.item {

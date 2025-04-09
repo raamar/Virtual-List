@@ -1,16 +1,11 @@
 <script lang="ts">
-	import { onMount, onDestroy, createEventDispatcher, tick } from 'svelte';
 	import { browser } from '$app/environment';
+	import { onMount, createEventDispatcher, tick } from 'svelte';
 
 	/**
 	 * Сколько всего «виртуальных» элементов в списке (для вычисления totalHeight).
 	 */
 	export let totalCount: number;
-
-	/**
-	 * Индекс, с которого хотим начать. При первом рендере компонент
-	 * автоматически прокрутит страницу к этому элементу (однократно).
-	 */
 	export let initialIndex = 0;
 
 	const dispatch = createEventDispatcher<{ viewChange: { currentIndex: number } }>();
@@ -22,8 +17,6 @@
 	let totalHeight = 0; // Общая высота для заполнения
 	let containerTop = 0; // Позиция нашего контейнера на странице
 	let slotOffset = 0; // Смещение слота вниз (translateY)
-
-	let didAutoScroll = false; // Чтобы автоскролл сделать один раз
 
 	// Замеряем размеры: высоту первого «ребёнка» и положение контейнера
 	function updateDimensions() {
@@ -63,64 +56,50 @@
 		slotOffset = visibleIndex * itemHeight;
 	}
 
-	// Ресайз (или появление контента) → пересчитываем размеры, делаем автоскролл один раз
+	// Ресайз (или появление контента)
 	function handleResize() {
 		updateDimensions();
 		onScroll();
-
-		// Если у нас уже есть ненулевая высота, и ещё не делали автоскролл
-		if (!didAutoScroll && itemHeight > 0 && initialIndex > 0 && initialIndex < totalCount) {
-			const y = containerTop + itemHeight * initialIndex;
-			window.scrollTo({ top: y, behavior: 'auto' });
-			// Сразу пересчитаем индекс
-			onScroll();
-			didAutoScroll = true;
-		}
 	}
 
 	let resizeObserver: ResizeObserver;
 
+	if (browser) {
+		window.scrollTo({ top: 0 });
+	}
+
 	onMount(() => {
-		if (browser) {
-			// После первого рендера сделаем начальные замеры
-			tick().then(() => {
+		// Слушаем глобальный скролл
+		window.addEventListener('scroll', onScroll, { passive: true });
+
+		// Следим за изменением размеров содержимого, чтобы поймать момент,
+		// когда высота первого элемента станет > 0
+		if (typeof ResizeObserver !== 'undefined') {
+			resizeObserver = new ResizeObserver(() => {
 				handleResize();
 			});
-
-			// Слушаем глобальный скролл
-			window.addEventListener('scroll', onScroll, { passive: true });
-
-			// Следим за изменением размеров содержимого, чтобы поймать момент,
-			// когда высота первого элемента станет > 0
-			if (typeof ResizeObserver !== 'undefined') {
-				resizeObserver = new ResizeObserver(() => {
-					handleResize();
-				});
-				resizeObserver.observe(slotContainer);
-			} else {
-				// Фолбэк на window.resize
-				window.addEventListener('resize', handleResize);
-			}
+			resizeObserver.observe(slotContainer);
+		} else {
+			// Фолбэк на window.resize
+			window.addEventListener('resize', handleResize);
 		}
 
+		setTimeout(() => {
+			window.scrollTo({ top: (initialIndex + 0.05) * itemHeight, behavior: 'instant' });
+		}, 250);
+
 		return () => {
-			if (browser) {
-				window.removeEventListener('scroll', onScroll);
-				if (resizeObserver) {
-					resizeObserver.disconnect();
-				} else {
-					window.removeEventListener('resize', handleResize);
-				}
+			window.removeEventListener('scroll', onScroll);
+			if (resizeObserver) {
+				resizeObserver.disconnect();
+			} else {
+				window.removeEventListener('resize', handleResize);
 			}
 		};
 	});
 </script>
 
-<!-- 
-  Внешний контейнер, растягиваемый на totalHeight (чтобы страница давала прокрутку).
-  Слот сдвигается slotOffset, так что DOM-элементы визуально совпадают с их «виртуальной» позицией.
--->
-<div bind:this={container} style="position: relative; width: 100%;">
+<div bind:this={container} style="position: relative; width: 100%;" class="container">
 	<div style="position: relative; width: 100%; height: {totalHeight}px;">
 		<div
 			bind:this={slotContainer}
@@ -136,3 +115,16 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	.container {
+		opacity: 0;
+		animation: fadeIn 0.5s ease forwards;
+	}
+
+	@keyframes fadeIn {
+		to {
+			opacity: 1;
+		}
+	}
+</style>
