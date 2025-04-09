@@ -1,3 +1,5 @@
 export const load = async ({ url: { searchParams } }) => {
-	return { index: Number(searchParams.get('page') ?? 1) };
+	const index = Number(searchParams.get('page') ?? 1);
+
+	return { index };
 };
