@@ -5,7 +5,7 @@ const timeout = <T>(fn: () => T, time: number): Promise<T> =>
 		}, time);
 	});
 
-const data = Array.from({ length: 50 }, (_, i) => ({
+const data = Array.from({ length: 263 }, (_, i) => ({
 	id: i,
 	name: `Item ${i}`,
 	description: `Description for item ${i}`
@@ -19,7 +19,7 @@ export const load = async ({ url: { searchParams } }) => {
 
 	const getData = timeout(
 		() => {
-			const d = data.slice((index - 1) * pageSize, (index + 1) * pageSize);
+			const d = data.slice((index - 1) * pageSize, (index + 2) * pageSize);
 			return d;
 		},
 		400 + Math.random() * 400

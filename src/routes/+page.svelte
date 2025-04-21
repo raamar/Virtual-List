@@ -5,6 +5,30 @@
 
 	export let data;
 
+	const debounce = <T extends (...args: any[]) => void>(
+		fn: T,
+		delay: number
+	): ((...args: Parameters<T>) => void) => {
+		let timeoutId: ReturnType<typeof setTimeout>;
+
+		return (...args: Parameters<T>) => {
+			clearTimeout(timeoutId);
+			timeoutId = setTimeout(() => fn(...args), delay);
+		};
+	};
+
+	const debouncedGoto = debounce(
+		(page: number) => {
+			goto(`?page=${page}`, {
+				replaceState: true,
+				noScroll: true
+			});
+
+			$pageHistory[page] = true;
+		},
+		300 // задержка в мс после последнего вызова
+	);
+
 	const chunkArray = <T,>(arr: T[], chunkSize: number = 4): T[][] => {
 		const result: T[][] = [];
 		for (let i = 0; i < arr.length; i += chunkSize) {
@@ -31,12 +55,7 @@
 		if ($pageHistory[page]) {
 			history.replaceState(null, '', `?page=${page}`);
 		} else {
-			goto(`?page=${page}`, {
-				replaceState: true,
-				noScroll: true
-			});
-
-			$pageHistory[page] = true;
+			debouncedGoto(page);
 		}
 	};
 
