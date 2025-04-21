@@ -1,36 +1,88 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { writable } from 'svelte/store';
 	import VirtualList from './VirtualList.svelte';
 
 	export let data;
-	// Пусть у нас 1000 элементов (квадратов)
-	let items = Array.from({ length: 63 }, (_, i) => i);
 
+	const chunkArray = <T,>(arr: T[], chunkSize: number = 4): T[][] => {
+		const result: T[][] = [];
+		for (let i = 0; i < arr.length; i += chunkSize) {
+			result.push(arr.slice(i, i + chunkSize));
+		}
+		return result;
+	};
+
+	const store = writable<Record<string, { name: string; description: string }>>({});
+	const pageHistory = writable<Record<string, boolean>>({});
 	const initialIndex = data.index - 1;
+
 	let currentIndex = 0;
 
-	// При каждом скролле VirtualList даёт нам событие "viewChange"
-	function handleViewChange(event: CustomEvent<{ currentIndex: number }>) {
-		const newIndex = event.detail.currentIndex ?? 0;
-		if (newIndex !== currentIndex) {
-			currentIndex = newIndex;
-			// Если нужно, здесь можно сохранить index в store или обновить query-параметры
-			goto(`?page=${currentIndex + 1}`, {
+	const handleViewChange = ({
+		detail: { currentIndex: newIndex = 0 }
+	}: CustomEvent<{ currentIndex: number }>) => {
+		if (newIndex === currentIndex) return;
+
+		currentIndex = newIndex;
+
+		const page = currentIndex + 1;
+
+		if ($pageHistory[page]) {
+			history.replaceState(null, '', `?page=${page}`);
+		} else {
+			goto(`?page=${page}`, {
 				replaceState: true,
 				noScroll: true
 			});
+
+			$pageHistory[page] = true;
 		}
-	}
+	};
+
+	$: void (async (
+		data_promise: Promise<
+			{
+				id: number;
+				name: string;
+				description: string;
+			}[]
+		>
+	) => {
+		const data = await data_promise;
+
+		store.update(($store) => {
+			Object.assign(
+				$store,
+				Object.fromEntries(
+					data.map((item) => [item.id, { name: item.name, description: item.description }])
+				)
+			);
+			return $store;
+		});
+	})(data.getData);
+
+	$: console.log($store);
 </script>
 
-<VirtualList totalCount={items.length} on:viewChange={handleViewChange} {initialIndex}>
-	{#each items as item, index}
+<VirtualList
+	totalCount={Math.floor(data.items.length / data.pageSize)}
+	on:viewChange={handleViewChange}
+	{initialIndex}
+>
+	{#each chunkArray(data.items, data.pageSize) as chunk, index}
 		{#if index >= currentIndex && index <= currentIndex + 1}
 			<div class="chunk" data-index={index + 1} class:reverse={index % 2}>
-				<div class="item">{item * 4 + 1}</div>
-				<div class="item">{item * 4 + 2}</div>
-				<div class="item">{item * 4 + 3}</div>
-				<div class="item">{item * 4 + 4}</div>
+				{#each chunk as id}
+					<div class="item" class:loading={!$store[id]}>
+						{#if $store[id]}
+							<h1>{$store[id].name}</h1>
+							<p>{$store[id].description}</p>
+						{:else}
+							<h1>Loading...</h1>
+						{/if}
+					</div>
+				{/each}
 			</div>
 		{/if}
 	{/each}
@@ -81,6 +133,8 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		flex-direction: column;
+		transition: background-color 0.3s ease;
 	}
 
 	.item:nth-child(4n - 3) {
@@ -94,5 +148,9 @@
 	}
 	.item:nth-child(4n) {
 		background-color: blueviolet;
+	}
+
+	.item.loading {
+		background-color: #ccc;
 	}
 </style>
