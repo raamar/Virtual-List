@@ -14,7 +14,7 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
 
-    # Step 2: Set up Node.js (ensure version is compatible with your project)
+    # Step 2: Set up Node.js
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
@@ -26,13 +26,17 @@ jobs:
         npm install
         npm run build
 
-    # Step 4: Debug - List the contents of the build output directory
-    - name: Debug Build Directory Contents
-      run: ls -al ./dist
+    # Step 4: Debug Build Logs
+    - name: Debug Build Logs
+      run: cat /home/runner/.npm/_logs/*.log || true
 
-    # Step 5: Deploy to GitHub Pages
+    # Step 5: Debug Build Directory Contents
+    - name: Debug Build Directory
+      run: ls -al ./build # Update './build' if the directory is different
+
+    # Step 6: Deploy to GitHub Pages
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./dist # Update this if your build output directory is different
+        publish_dir: ./build # Update './build' to match your actual build output directory
