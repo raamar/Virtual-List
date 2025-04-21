@@ -1,36 +1,38 @@
+name: Build and Deploy to GitHub Pages
+
 on:
-       push:
-         branches:
-           - master
+  push:
+    branches:
+      - master
 
-     jobs:
-       build-and-deploy:
-         runs-on: ubuntu-latest
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
 
-         steps:
-         # Checkout the repository
-         - name: Checkout Code
-           uses: actions/checkout@v3
+    steps:
+    # Step 1: Checkout the repository
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-         # Set up Node.js
-         - name: Set up Node.js
-           uses: actions/setup-node@v3
-           with:
-             node-version: 18
+    # Step 2: Set up Node.js (ensure version is compatible with your project)
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
 
-         # Install dependencies and build the project
-         - name: Install dependencies and Build
-           run: |
-             npm install
-             npm run build
+    # Step 3: Install dependencies and build the project
+    - name: Install dependencies and Build
+      run: |
+        npm install
+        npm run build
 
-         # Debug: List Build Directory
-         - name: List Build Directory
-           run: ls -al ./dist
+    # Step 4: Debug - List the contents of the build output directory
+    - name: Debug Build Directory Contents
+      run: ls -al ./dist
 
-         # Deploy to GitHub Pages
-         - name: Deploy to GitHub Pages
-           uses: peaceiris/actions-gh-pages@v3
-           with:
-             github_token: ${{ secrets.GITHUB_TOKEN }}
-             publish_dir: ./dist # Adjust this if your build output directory is different
+    # Step 5: Deploy to GitHub Pages
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist # Update this if your build output directory is different
