@@ -24,7 +24,7 @@
 		});
 
 		$pageHistory[page] = true;
-	}, 400);
+	}, 300);
 
 	const chunkArray = <T,>(arr: T[], chunkSize: number = 4): T[][] => {
 		const result: T[][] = [];
