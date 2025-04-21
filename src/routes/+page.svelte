@@ -17,17 +17,14 @@
 		};
 	};
 
-	const debouncedGoto = debounce(
-		(page: number) => {
-			goto(`?page=${page}`, {
-				replaceState: true,
-				noScroll: true
-			});
+	const debouncedGoto = debounce((page: number) => {
+		goto(`?page=${page}`, {
+			replaceState: true,
+			noScroll: true
+		});
 
-			$pageHistory[page] = true;
-		},
-		300 // задержка в мс после последнего вызова
-	);
+		$pageHistory[page] = true;
+	}, 400);
 
 	const chunkArray = <T,>(arr: T[], chunkSize: number = 4): T[][] => {
 		const result: T[][] = [];
